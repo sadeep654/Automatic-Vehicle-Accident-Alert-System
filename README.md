@@ -38,7 +38,13 @@ Full system description referenced from project documentation.
 
 ---
 
-## 🔹 System Architecture
+## 🔹 Architecture
+
+<p align="center">
+  <img src="img/diagram.jpg" width="100%" alt="Client-Server Architecture Diagram" />
+</p>
+
+>**Architecture Summary**
 1. Detect accident via IMU, knock, and flame sensors  
 2. Identify accident type  
 3. Fetch location from GPS  
@@ -134,7 +140,7 @@ http://www.apache.org/licenses/
 ```bash
 Kasthuriarachchi, S.D., 2023. Vehicle-Accident-Alert-System. [Online] Available at:
 https://github.com/sadeep654/Vehicle-Accident-Alert-System￼
-(Accessed: 25 February 2025).
+(Accessed: date-you-accessed).
 ```
 
 ---
