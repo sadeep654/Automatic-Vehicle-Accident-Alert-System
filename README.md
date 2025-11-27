@@ -5,6 +5,7 @@
 
 ---
 
+## 🔹 Overview
 A microcontroller-based system for **accident detection**, **location tracking**, and **automatic emergency alerts**. The device identifies collisions, rollovers, and fires, determines driver-carelessness level, and sends real-time GPS coordinates to emergency services via GSM.  
 Full system description referenced from project documentation.
 
@@ -24,7 +25,7 @@ Full system description referenced from project documentation.
 
 ---
 
-## 🛠️ Hardware Components
+## 🔹 Hardware Components
 - Arduino Nano (ATmega328P)  
 - MPU6050 IMU (Accelerometer + Gyroscope)  
 - Vibration/Knock Sensor  
@@ -37,7 +38,7 @@ Full system description referenced from project documentation.
 
 ---
 
-## 🔧 System Architecture
+## 🔹 System Architecture
 1. Detect accident via IMU, knock, and flame sensors  
 2. Identify accident type  
 3. Fetch location from GPS  
@@ -51,7 +52,7 @@ Full system description referenced from project documentation.
 
 ---
 
-## 🧩 Accident Severity & Delay Logic
+>## 🧩 Accident Severity & Delay Logic
 | Collision | Rollover | Fire | Delay |
 |----------|----------|------|--------|
 | Yes | No | No | 15s |
@@ -63,7 +64,7 @@ Full system description referenced from project documentation.
 
 ---
 
-## 🧪 Results Summary
+## 🔹 Results Summary
 - **Accident detection accuracy:** 100%  
 - **GPS tracking accuracy:** 87%  
 - **SMS delivery success:** 93%  
