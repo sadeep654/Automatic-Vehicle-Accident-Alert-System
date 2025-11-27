@@ -124,8 +124,18 @@ This provides more accurate rollover detection.
 
 ---
 
-## 📜 License
-
+## 🔹 License & Citation
+```bash
+Apache License  
+Version 2.0, January 2004  
+http://www.apache.org/licenses/
+```
+- **If you use this work in any form—academic, research, educational, or practical—please cite it as:**
+```bash
+Kasthuriarachchi, S.D., 2023. Vehicle-Accident-Alert-System. [Online] Available at:
+https://github.com/sadeep654/Vehicle-Accident-Alert-System￼
+(Accessed: 25 February 2025).
+```
 
 ---
 
