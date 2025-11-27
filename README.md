@@ -98,7 +98,7 @@ Confirm countdown + SMS behavior.
 
 ---
 
-## 🔬 Sensor Filtering (IMU)
+## 🔹 Sensor Filtering (IMU)
 A Kalman filter was used to reduce noise in:
 - Roll  
 - Pitch  
@@ -131,5 +131,9 @@ This provides more accurate rollover detection.
 ---
 
 ## 📜 License
-This project is for educational and demonstrative use.  
-Feel free to fork or enhance the system.
+
+
+---
+
+## 📩 Contact
+Feel free to explore, fork, or reach out for collaboration or opportunities.
