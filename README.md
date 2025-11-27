@@ -69,6 +69,7 @@ Full system description referenced from project documentation.
 ## 📁 Suggested Project Structure
 ---
 
+```bash
 ## ▶️ Getting Started
 
 ### 1️⃣ Upload Code
@@ -87,6 +88,7 @@ Simulate:
 - Fire (flame sensor)
 
 Confirm countdown + SMS behavior.
+```
 
 ---
 
