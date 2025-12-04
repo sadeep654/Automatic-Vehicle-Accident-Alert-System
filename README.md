@@ -146,6 +146,10 @@ http://www.apache.org/licenses/
 ```bash
 Kasthuriarachchi, S.D., 2023. Vehicle-Accident-Alert-System. [Online] Available at: https://github.com/sadeep654/Vehicle-Accident-Alert-System (Accessed: date-you-accessed).
 ```
+- **copyright**
+```bash
+Copyright all rights reserved
+```
 
 ---
 
