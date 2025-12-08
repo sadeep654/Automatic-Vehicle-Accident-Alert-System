@@ -1,138 +1,158 @@
 #!/usr/bin/env python3
 """
-Generate a simple OG/social preview card (1280x640) with repo title + description.
-Dependencies: Pillow
+GitHub-style OG Card Generator
+Creates a clean white preview card:
+- small owner text
+- bold repo name
+- description (wrapped)
+- stats row (contributors/issues/stars/forks)
+- GitHub avatar on the right
 """
 
 import os
 import argparse
 from PIL import Image, ImageDraw, ImageFont
 
-DEFAULT_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-DEFAULT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 def load_font(path, size):
     try:
         return ImageFont.truetype(path, size)
-    except Exception:
+    except:
         return ImageFont.load_default()
 
-def measure_text(draw, text, font):
-    """
-    Return (width, height) for the given text using the best available method.
-    Compatible with multiple Pillow versions.
-    """
+def measure(draw, text, font):
     try:
-        # Preferred (Pillow >= 8)
         bbox = draw.textbbox((0,0), text, font=font)
-        w = bbox[2] - bbox[0]
-        h = bbox[3] - bbox[1]
-        return (w, h)
-    except Exception:
+        return bbox[2]-bbox[0], bbox[3]-bbox[1]
+    except:
         try:
-            # Fallback to font.getsize
             return font.getsize(text)
-        except Exception:
-            # Last fallback: draw.textsize if available
-            if hasattr(draw, "textsize"):
-                return draw.textsize(text, font=font)
-            return (len(text) * 6, 12)
+        except:
+            return (len(text)*6, 20)
 
 def wrap_text(text, font, max_width, draw):
     words = text.split()
     lines = []
     cur = ""
+
     for w in words:
         test = cur + (" " if cur else "") + w
-        width, _ = measure_text(draw, test, font)
-        if width <= max_width:
+        w_px, _ = measure(draw, test, font)
+        if w_px <= max_width:
             cur = test
         else:
-            if cur:
-                lines.append(cur)
+            lines.append(cur)
             cur = w
+
     if cur:
         lines.append(cur)
     return lines
 
+
+def draw_stats(draw, x, y, font, color):
+    items = [
+        ("Contributors", "1"),
+        ("Issues", "0"),
+        ("Stars", "0"),
+        ("Forks", "0"),
+    ]
+    spacing = 70
+    for label, count in items:
+        text = f"{count} {label}"
+        draw.text((x, y), text, font=font, fill=color)
+        tw, _ = measure(draw, text, font)
+        x += tw + spacing
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output", default="social_preview.png")
-    ap.add_argument("--title", default="Repository")
-    ap.add_argument("--subtitle", default="")
-    ap.add_argument("--author", default="")
-    ap.add_argument("--sha", default="")
+    ap.add_argument("--title")
+    ap.add_argument("--subtitle")
+    ap.add_argument("--author")
+    ap.add_argument("--sha")
     ap.add_argument("--logo", default="assets/brand-logo.png")
     args = ap.parse_args()
 
     W, H = 1280, 640
-    bg_color = (18, 40, 74)
-    accent = (249, 208, 39)
-    text_color = (255, 255, 255)
-    muted = (200, 210, 220)
+    BG = (255, 255, 255)
+    TEXT = (30, 35, 40)
+    SUBTEXT = (100, 110, 120)
 
-    img = Image.new("RGB", (W, H), bg_color)
+    img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
 
-    # subtle stripes
-    for i in range(0, H, 4):
-        alpha = int(6 * (i / H))
-        stripe_color = (min(255, bg_color[0] + alpha),
-                       min(255, bg_color[1] + alpha),
-                       min(255, bg_color[2] + alpha))
-        draw.line([(0, i), (W, i)], fill=stripe_color, width=1)
+    left = 100
+    right = W - 260
 
-    font_title = load_font(DEFAULT_BOLD, 48)
-    font_sub = load_font(DEFAULT_FONT, 24)
-    font_meta = load_font(DEFAULT_FONT, 18)
+    raw = args.title or "unknown/repo"
+    if "/" in raw:
+        owner, repo = raw.split("/", 1)
+    else:
+        owner, repo = "", raw
 
-    padding = 60
-    left = padding
-    right_limit = W - padding
+    font_owner = load_font(FONT_REGULAR, 30)
+    font_repo = load_font(FONT_BOLD, 64)
+    font_desc = load_font(FONT_REGULAR, 26)
+    font_stats = load_font(FONT_REGULAR, 22)
 
-    title = args.title
-    if len(title) > 60:
-        title = title[:57] + "..."
+    y = 120
 
-    draw.text((left, 120), title, font=font_title, fill=accent)
+    # Owner (small)
+    if owner:
+        owner_text = f"{owner}/"
+        draw.text((left, y), owner_text, font=font_owner, fill=SUBTEXT)
+        ow, oh = measure(draw, owner_text, font_owner)
+        y += oh + 10
 
-    subtitle = args.subtitle or "A GitHub project"
-    max_width = right_limit - left
-    lines = wrap_text(subtitle, font_sub, max_width, draw)
-    y = 200
-    for line in lines[:5]:
-        draw.text((left, y), line, font=font_sub, fill=text_color)
-        _, h = measure_text(draw, line, font_sub)
-        y += h + 6
+    # Repo bold
+    # shrink if too wide
+    rw, rh = measure(draw, repo, font_repo)
+    maxw = right - left
+    if rw > maxw:
+        for sz in range(64, 28, -4):
+            font_repo = load_font(FONT_BOLD, sz)
+            rw, rh = measure(draw, repo, font_repo)
+            if rw <= maxw:
+                break
 
-    meta = f"by {args.author}" if args.author else ""
+    draw.text((left, y), repo, font=font_repo, fill=TEXT)
+    y += rh + 20
+
+    # Subtitle / Description
+    desc = args.subtitle or ""
+    lines = wrap_text(desc, font_desc, maxw, draw)[:3]
+    for line in lines:
+        draw.text((left, y), line, font=font_desc, fill=SUBTEXT)
+        _, lh = measure(draw, line, font_desc)
+        y += lh + 6
+
+    # Stats row
+    y += 25
+    draw_stats(draw, left, y, font_stats, SUBTEXT)
+
+    # Meta line bottom-left
+    meta = ""
+    if args.author:
+        meta = f"by {args.author}"
     if args.sha:
         meta += f" • {args.sha[:7]}"
-    draw.text((left, H - 80), meta, font=font_meta, fill=muted)
+    draw.text((left, H - 60), meta, font=font_stats, fill=SUBTEXT)
 
-    # right info box
-    box_w, box_h = 420, 220
-    box_x = W - padding - box_w
-    box_y = 120
-    draw.rectangle([box_x, box_y, box_x+box_w, box_y+box_h], outline=(255,255,255,20))
-
-    sx = box_x + 24
-    sy = box_y + 24
-    draw.text((sx, sy), "★ 0  •  Forks: 0  •  Issues: 0", font=font_meta, fill=text_color)
-
-    # logo (optional)
+    # Avatar / logo
     if os.path.exists(args.logo):
         try:
-            logo = Image.open(args.logo).convert("RGBA")
-            logo.thumbnail((100,100))
-            lx = box_x + box_w - logo.width - 20
-            ly = box_y + 20
-            img.paste(logo, (lx, ly), logo)
-        except Exception:
+            avatar = Image.open(args.logo).convert("RGBA")
+            avatar.thumbnail((180, 180))
+            img.paste(avatar, (W - 260, 100), avatar)
+        except:
             pass
 
-    img.convert("RGB").save(args.output, quality=90)
+    img.save(args.output, quality=95)
     print("Generated", args.output)
+
 
 if __name__ == "__main__":
     main()
