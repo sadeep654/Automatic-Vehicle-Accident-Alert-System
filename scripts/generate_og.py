@@ -23,20 +23,19 @@ def measure_text(draw, text, font):
     Compatible with multiple Pillow versions.
     """
     try:
-        # Pillow >= 8: textbbox gives accurate bounding box
+        # Preferred (Pillow >= 8)
         bbox = draw.textbbox((0,0), text, font=font)
         w = bbox[2] - bbox[0]
         h = bbox[3] - bbox[1]
         return (w, h)
     except Exception:
         try:
-            # Older Pillow: font.getsize
+            # Fallback to font.getsize
             return font.getsize(text)
         except Exception:
-            # Fallback: use draw.textsize if present
+            # Last fallback: draw.textsize if available
             if hasattr(draw, "textsize"):
                 return draw.textsize(text, font=font)
-            # Last resort
             return (len(text) * 6, 12)
 
 def wrap_text(text, font, max_width, draw):
@@ -75,11 +74,12 @@ def main():
     img = Image.new("RGB", (W, H), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # subtle stripes for texture (very light)
+    # subtle stripes
     for i in range(0, H, 4):
         alpha = int(6 * (i / H))
-        # draw.line doesn't accept alpha on RGB image; use a slightly different color
-        stripe_color = (bg_color[0] + alpha, bg_color[1] + alpha, bg_color[2] + alpha)
+        stripe_color = (min(255, bg_color[0] + alpha),
+                       min(255, bg_color[1] + alpha),
+                       min(255, bg_color[2] + alpha))
         draw.line([(0, i), (W, i)], fill=stripe_color, width=1)
 
     font_title = load_font(DEFAULT_BOLD, 48)
