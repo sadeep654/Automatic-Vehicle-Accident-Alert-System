@@ -17,13 +17,35 @@ def load_font(path, size):
     except Exception:
         return ImageFont.load_default()
 
+def measure_text(draw, text, font):
+    """
+    Return (width, height) for the given text using the best available method.
+    Compatible with multiple Pillow versions.
+    """
+    try:
+        # Pillow >= 8: textbbox gives accurate bounding box
+        bbox = draw.textbbox((0,0), text, font=font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        return (w, h)
+    except Exception:
+        try:
+            # Older Pillow: font.getsize
+            return font.getsize(text)
+        except Exception:
+            # Fallback: use draw.textsize if present
+            if hasattr(draw, "textsize"):
+                return draw.textsize(text, font=font)
+            # Last resort
+            return (len(text) * 6, 12)
+
 def wrap_text(text, font, max_width, draw):
     words = text.split()
     lines = []
     cur = ""
     for w in words:
         test = cur + (" " if cur else "") + w
-        width, _ = draw.textsize(test, font=font)
+        width, _ = measure_text(draw, test, font)
         if width <= max_width:
             cur = test
         else:
@@ -53,9 +75,12 @@ def main():
     img = Image.new("RGB", (W, H), bg_color)
     draw = ImageDraw.Draw(img)
 
-    # subtle stripes
+    # subtle stripes for texture (very light)
     for i in range(0, H, 4):
-        draw.line([(0,i),(W,i)], fill=(255,255,255, int(4 * (i/H))), width=1)
+        alpha = int(6 * (i / H))
+        # draw.line doesn't accept alpha on RGB image; use a slightly different color
+        stripe_color = (bg_color[0] + alpha, bg_color[1] + alpha, bg_color[2] + alpha)
+        draw.line([(0, i), (W, i)], fill=stripe_color, width=1)
 
     font_title = load_font(DEFAULT_BOLD, 48)
     font_sub = load_font(DEFAULT_FONT, 24)
@@ -77,7 +102,8 @@ def main():
     y = 200
     for line in lines[:5]:
         draw.text((left, y), line, font=font_sub, fill=text_color)
-        y += font_sub.getsize(line)[1] + 6
+        _, h = measure_text(draw, line, font_sub)
+        y += h + 6
 
     meta = f"by {args.author}" if args.author else ""
     if args.sha:
@@ -94,7 +120,7 @@ def main():
     sy = box_y + 24
     draw.text((sx, sy), "★ 0  •  Forks: 0  •  Issues: 0", font=font_meta, fill=text_color)
 
-    # logo
+    # logo (optional)
     if os.path.exists(args.logo):
         try:
             logo = Image.open(args.logo).convert("RGBA")
