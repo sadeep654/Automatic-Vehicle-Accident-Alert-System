@@ -67,6 +67,3 @@ jobs:
           else
             echo "No change to social_preview.png"
           fi
-YML
-
-# 4. add generator script (next step)
