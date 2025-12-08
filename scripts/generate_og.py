@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-OG card generator — guaranteed bottom bar + visible GitHub mark fallback.
+OG card generator — with round avatar + bigger GitHub mark + bottom bar.
 Saves: social_preview.png
 """
 
@@ -53,23 +53,28 @@ def draw_stats(draw, x, y, font, color):
         w, _ = measure(draw, text, font)
         x += w + spacing
 
-def draw_github_fallback(draw, gx, gy):
-    # Draw a small rounded square with "GH" letters so it is always visible
-    box_w = 40
-    box_h = 40
-    r = 6
-    rect = [gx, gy, gx + box_w, gy + box_h]
+def crop_circle(im):
+    """Returns a perfectly circular cropped version of the image."""
+    w, h = im.size
+    size = min(w, h)
+    im = im.crop(((w - size) // 2, (h - size) // 2, (w + size) // 2, (h + size) // 2))  # square
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0,0,size,size), fill=255)
+    output = Image.new("RGBA", (size, size), (0,0,0,0))
+    output.paste(im, (0,0), mask)
+    return output
+
+def draw_github_fallback(draw, gx, gy, size=48):
+    """Draw fallback GH icon if github-mark.png missing."""
+    r = size // 6
+    rect = [gx, gy, gx + size, gy + size]
     draw.rounded_rectangle(rect, radius=r, fill=(36, 41, 46))
-    # GH text
-    try:
-        f = load_font(FONT_BOLD, 18)
-    except:
-        f = load_font(FONT_REGULAR, 14)
+    f = load_font(FONT_BOLD, size//2)
     tw, th = measure(draw, "GH", f)
-    tx = gx + (box_w - tw) // 2
-    ty = gy + (box_h - th) // 2 - 1
+    tx = gx + (size - tw)//2
+    ty = gy + (size - th)//2
     draw.text((tx, ty), "GH", font=f, fill=(255,255,255))
-    print("Placed fallback GH mark at", gx, gy)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -106,14 +111,14 @@ def main():
     f_desc = load_font(FONT_REGULAR, 26)
     f_stats = load_font(FONT_REGULAR, 22)
 
+    # Owner
     y = 120
     if owner:
-        owner_text = f"{owner}/"
-        draw.text((left, y), owner_text, font=f_owner, fill=SUB)
-        ow, oh = measure(draw, owner_text, f_owner)
+        draw.text((left, y), f"{owner}/", font=f_owner, fill=SUB)
+        _, oh = measure(draw, f"{owner}/", f_owner)
         y += oh + 10
 
-    # shrink repo text to fit width if needed
+    # Repo (shrink as needed)
     rw, rh = measure(draw, repo, f_repo)
     if rw > maxw:
         for s in range(64, 28, -2):
@@ -124,75 +129,66 @@ def main():
     draw.text((left, y), repo, font=f_repo, fill=TEXT)
     y += rh + 18
 
-    # description wrap (max 3 lines)
-    desc = args.subtitle or ""
-    lines = wrap_text(desc, f_desc, maxw, draw)[:3]
+    # Description
+    lines = wrap_text(args.subtitle, f_desc, maxw, draw)[:3]
     for line in lines:
         draw.text((left, y), line, font=f_desc, fill=SUB)
         _, lh = measure(draw, line, f_desc)
         y += lh + 6
 
-    # stats
+    # Stats
     y += 18
     draw_stats(draw, left, y, f_stats, STATS)
 
-    # meta bottom-left
+    # Meta bottom-left
     meta = ""
     if args.author:
         meta = f"by {args.author}"
     if args.sha:
-        meta = meta + (" • " if meta else "") + args.sha[:7]
-    if meta:
-        draw.text((left, H-64), meta, font=f_stats, fill=SUB)
+        meta += f" • {args.sha[:7]}"
+    draw.text((left, H-64), meta, font=f_stats, fill=SUB)
 
-    # avatar/logo top-right (if exists)
-    logo_ok = False
+    # Round avatar (top-right)
     if os.path.exists(args.logo):
         try:
             avatar = Image.open(args.logo).convert("RGBA")
-            avatar.thumbnail((180,180))
-            av_w, av_h = avatar.size
-            lx = W - 260 + (260 - av_w)//2
-            ly = 100
-            img.paste(avatar, (lx, ly), avatar)
-            logo_ok = True
-            print("Placed avatar from", args.logo)
-        except Exception as e:
-            print("Avatar paste error:", e)
+            avatar = crop_circle(avatar)
+            avatar = avatar.resize((180,180), Image.LANCZOS)
 
-    # bottom colour bar (two colors)
+            # Optional white border
+            border = ImageOps.expand(avatar, border=6, fill="white")
+
+            # Position
+            ax = W - 260 + (260 - border.size[0])//2
+            ay = 100
+            img.paste(border, (ax, ay), border)
+
+        except Exception as e:
+            print("Avatar error:", e)
+
+    # Bottom color bar
     bar_h = 18
-    left_color = (232,76,61)    # warm red
-    right_color = (44,111,180)  # blue
-    split = int(W * 0.6)
-    # draw entire bar region explicitly so it's always visible
-    draw.rectangle([0, H-bar_h, split, H], fill=left_color)
-    draw.rectangle([split, H-bar_h, W, H], fill=right_color)
+    draw.rectangle([0, H-bar_h, int(W*0.6), H], fill=(232,76,61))   # red
+    draw.rectangle([int(W*0.6), H-bar_h, W, H], fill=(44,111,180)) # blue
 
-    # place GitHub mark (icon) above the bar right side
-    gh_path = args.github_mark
-    gh_placed = False
-    if os.path.exists(gh_path):
+    # Bigger GitHub icon
+    gh_size = 48
+    gx = W - 48 - gh_size
+    gy = H - bar_h - gh_size - 12
+
+    if os.path.exists(args.github_mark):
         try:
-            gh = Image.open(gh_path).convert("RGBA")
-            gh.thumbnail((36,36))
-            gx = W - 48 - gh.size[0]
-            gy = H - bar_h - gh.size[1] - 12
+            gh = Image.open(args.github_mark).convert("RGBA")
+            gh.thumbnail((gh_size, gh_size))
             img.paste(gh, (gx, gy), gh)
-            gh_placed = True
-            print("Placed github-mark from", gh_path)
-        except Exception as e:
-            print("Error placing github mark:", e)
+        except:
+            draw_github_fallback(draw, gx, gy, size=gh_size)
+    else:
+        draw_github_fallback(draw, gx, gy, size=gh_size)
 
-    if not gh_placed:
-        # draw fallback so it's always visible
-        gx = W - 48 - 40
-        gy = H - bar_h - 40 - 12
-        draw_github_fallback(draw, gx, gy)
-
-    # write file and exit
+    # Save final image
     img.save(args.output, quality=95)
-    print("Generated", args.output, "| bottom bar drawn | github mark placed:", gh_placed)
+    print("Generated", args.output)
 
 if __name__ == "__main__":
     main()
