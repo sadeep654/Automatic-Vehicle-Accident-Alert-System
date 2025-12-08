@@ -1,12 +1,3 @@
-# 1. get latest
-git checkout main
-git pull origin main
-
-# 2. create folders
-mkdir -p .github/workflows scripts assets
-
-# 3. create the workflow file
-cat > .github/workflows/generate-og.yml <<'YML'
 name: Generate OG Image
 
 on:
@@ -67,6 +58,3 @@ jobs:
           else
             echo "No change to social_preview.png"
           fi
-YML
-
-# 4. add generator script (next step)
